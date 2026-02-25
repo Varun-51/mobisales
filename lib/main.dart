@@ -1,125 +1,246 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'login_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
+  runApp(const LuxuryApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+// ─────────────────────────────────────────────
+// GLOBAL THEME & COLORS
+// ─────────────────────────────────────────────
+class AppColors {
+  static const primary      = Color(0xFF4A90E2);
+  static const primaryLight = Color(0xFFEBF3FC);
+  static const primaryDark  = Color(0xFF2D6BBF);
+  static const white        = Color(0xFFFFFFFF);
+  static const background   = Color(0xFFF8FAFE);
+  static const surface      = Color(0xFFFFFFFF);
+  static const textDark     = Color(0xFF1A2340);
+  static const textMid      = Color(0xFF5A6580);
+  static const textLight    = Color(0xFF9BA8BE);
+  static const shadow       = Color(0x144A90E2);
+  static const divider      = Color(0xFFEAEFF8);
+}
 
-  // This widget is the root of your application.
+ThemeData get appTheme => ThemeData(
+  useMaterial3: true,
+  fontFamily: 'Georgia',
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: AppColors.primary,
+    brightness: Brightness.light,
+    surface: AppColors.surface,
+    primary: AppColors.primary,
+  ),
+  scaffoldBackgroundColor: AppColors.background,
+  appBarTheme: const AppBarTheme(
+    backgroundColor: AppColors.white,
+    elevation: 0,
+    centerTitle: true,
+    titleTextStyle: TextStyle(
+      color: AppColors.textDark,
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.3,
+    ),
+    iconTheme: IconThemeData(color: AppColors.primary),
+  ),
+);
+
+// ─────────────────────────────────────────────
+// SHARED WIDGETS  (imported by both screens)
+// ─────────────────────────────────────────────
+
+/// Elegant card with a layered blue shadow.
+class LuxuryCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets? padding;
+  final VoidCallback? onTap;
+
+  const LuxuryCard({super.key, required this.child, this.padding, this.onTap});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(color: AppColors.shadow, blurRadius: 24, offset: Offset(0, 8)),
+            BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2)),
+          ],
+        ),
+        padding: padding ?? const EdgeInsets.all(20),
+        child: child,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+/// Gradient button with press-scale animation and loading state.
+class PrimaryButton extends StatefulWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final bool isLoading;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  const PrimaryButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<PrimaryButton> createState() => _PrimaryButtonState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _PrimaryButtonState extends State<PrimaryButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _ctrl  = AnimationController(vsync: this, duration: const Duration(milliseconds: 100));
+    _scale = Tween(begin: 1.0, end: 0.96)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+    return GestureDetector(
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        widget.onPressed();
+      },
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          width: double.infinity,
+          height: 56,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF5AA0ED), AppColors.primary, AppColors.primaryDark],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(color: Color(0x554A90E2), blurRadius: 20, offset: Offset(0, 8)),
+            ],
+          ),
+          child: Center(
+            child: widget.isLoading
+                ? const SizedBox(
+                width: 22, height: 22,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text(
+              widget.label,
+              style: const TextStyle(
+                color: Colors.white, fontSize: 16,
+                fontWeight: FontWeight.w600, letterSpacing: 0.8,
+              ),
             ),
-          ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+/// Coloured pill badge (Confirmed / Pending / Draft).
+class StatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const StatusBadge({super.key, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// Reusable large page header with optional trailing action widget.
+class PageHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget? action;
+
+  const PageHeader({super.key, required this.title, required this.subtitle, this.action});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 30, fontWeight: FontWeight.w700,
+                    color: AppColors.textDark, letterSpacing: -0.5, fontFamily: 'Georgia',
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(subtitle,
+                    style: const TextStyle(fontSize: 13, color: AppColors.textMid)),
+              ],
+            ),
+          ),
+          if (action != null) action!,
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// APP ROOT
+// ─────────────────────────────────────────────
+class LuxuryApp extends StatelessWidget {
+  const LuxuryApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Lumina',
+      debugShowCheckedModeBanner: false,
+      theme: appTheme,
+      home: const LoginScreen(),
     );
   }
 }
